@@ -40,6 +40,10 @@ const setBudget = async (req, res) => {
     try {
         const { amount, month, year } = req.body;
 
+        if (amount < 0) {
+            return res.status(400).json({ success: false, error: 'Amount cannot be negative' });
+        }
+
         // Check if budget exists
         let budget = await Budget.findOne({
             user: req.user.id,
@@ -72,7 +76,56 @@ const setBudget = async (req, res) => {
     }
 };
 
+// @desc    Update budget
+// @route   PUT /api/budget/:id
+// @access  Private
+const updateBudget = async (req, res) => {
+    try {
+        const { amount } = req.body;
+        let budget = await Budget.findById(req.params.id);
+
+        if (!budget) {
+            return res.status(404).json({ success: false, error: 'Budget not found' });
+        }
+
+        if (budget.user.toString() !== req.user.id) {
+            return res.status(401).json({ success: false, error: 'Not authorized' });
+        }
+
+        budget.amount = amount;
+        await budget.save();
+
+        res.status(200).json({ data: budget });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
+// @desc    Delete budget
+// @route   DELETE /api/budget/:id
+// @access  Private
+const deleteBudget = async (req, res) => {
+    try {
+        const budget = await Budget.findById(req.params.id);
+
+        if (!budget) {
+            return res.status(404).json({ success: false, error: 'Budget not found' });
+        }
+
+        if (budget.user.toString() !== req.user.id) {
+            return res.status(401).json({ success: false, error: 'Not authorized' });
+        }
+
+        await budget.deleteOne();
+        res.status(200).json({ success: true, data: {} });
+    } catch (err) {
+        return res.status(500).json({ success: false, error: 'Server Error' });
+    }
+};
+
 module.exports = {
     getBudget,
     setBudget,
+    updateBudget,
+    deleteBudget,
 };
